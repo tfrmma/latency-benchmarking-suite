@@ -1,6 +1,6 @@
 # latency-benchmarking-suite
 
-Sub-microsecond latency measurement for the critical path components of an HFT execution stack. Companion to [`sor-engine`](https://github.com/tfrmma/sor-engine) and [`oms-order-management-system`](https://github.com/tfrmma/oms-order-management-system) — this is what backs up the latency claims in those repos.
+Sub-microsecond latency measurement for the critical path components of an HFT execution stack. Companion to [`sor-engine`](https://github.com/tfrmma/sor-engine) and [`oms-order-management-system`](https://github.com/tfrmma/oms-order-management-system), this is what backs up the latency claims in those repos.
 
 All measurements use `rdtsc` with `lfence`/`rdtscp` fencing, CPU core pinning, and explicit cache warming before each benchmark. `std::chrono` is not used anywhere.
 
@@ -15,7 +15,7 @@ All measurements use `rdtsc` with `lfence`/`rdtscp` fencing, CPU core pinning, a
 | `cancel_replace` | Reprice decision + order action construction |
 | `mutex_contended_read` | `std::mutex` read under active writer contention |
 | `atomic_gen_read` | Generation-counter atomic read (seqlock variant) |
-| `spsc_seqlock_read` | SPSC seqlock — what you should actually use |
+| `spsc_seqlock_read` | SPSC seqlock, what you should actually use |
 
 ---
 
@@ -36,7 +36,7 @@ atomic_gen_read            100000      11.7ns   18.3ns   29.4ns   187ns   1842ns
 spsc_seqlock_read          100000       5.8ns    7.1ns    9.3ns   21.4ns   58.7ns   6.1ns   4.9ns   1203ns
 ```
 
-The mutex numbers at p999 aren't surprising — that's the OS scheduler doing something. What is interesting is that even at p50 the mutex costs 94ns against ~6ns for the seqlock. At 100µs decision cycles you're giving up 0.1% of your time budget to a lock you don't need.
+The mutex numbers at p999 aren't surprising, that's the OS scheduler doing something. What is interesting is that even at p50 the mutex costs 94ns against ~6ns for the seqlock. At 100µs decision cycles you're giving up 0.1% of your time budget to a lock you don't need.
 
 The 1847ns spike on `tick_to_trade` is a TLB miss. It happens ~3 times per 200k iterations. Not worth optimizing unless you're running on isolated cores with hugepages.
 
@@ -44,7 +44,7 @@ The 1847ns spike on `tick_to_trade` is a TLB miss. It happens ~3 times per 200k 
 
 ## Design decisions
 
-**`rdtsc` not `std::chrono`.** Invariant TSC on modern x86 is monotonic, CPU-frequency-independent, and has ~1 cycle read overhead. `std::chrono::high_resolution_clock` on Linux maps to `clock_gettime(CLOCK_MONOTONIC)` which is a vDSO call — typically 20-30ns overhead. That's larger than several of the things we're trying to measure.
+**`rdtsc` not `std::chrono`.** Invariant TSC on modern x86 is monotonic, CPU-frequency-independent, and has ~1 cycle read overhead. `std::chrono::high_resolution_clock` on Linux maps to `clock_gettime(CLOCK_MONOTONIC)` which is a vDSO call, typically 20-30ns overhead. That's larger than several of the things we're trying to measure.
 
 **`lfence` before, `rdtscp` after.** Without serialization, out-of-order execution can read the counter before prior instructions retire (or after subsequent instructions start). The fence pair costs ~10 cycles total but gives you a meaningful measurement instead of noise.
 
@@ -126,7 +126,7 @@ latency-benchmarking-suite/
 
 ## Known issues / TODO
 
-- JSON/CSV output is stubbed in `main.cpp` — the output format is defined and the sample files in `results/` are accurate, but the actual serialization path needs wiring up. It's a rainy-day hour of work.
+- JSON/CSV output is stubbed in `main.cpp`, the output format is defined and the sample files in `results/` are accurate, but the actual serialization path needs wiring up. It's a rainy-day hour of work.
 - Contention benchmarks need the writer thread on a different physical core to be meaningful. Sibling hyperthreads share an L1, put the writer there and you're measuring cache coherency, not lock cost.
 - The `tick_to_trade` pricing model is a simplified A-S reserve price. The actual bot uses a full Avellaneda-Stoikov formulation with rolling vol calibration. The latency of the extended model is ~25-30ns p50 vs 18ns here.
 - No hugepage support yet. The 1800ns tail spike would disappear with 2MB pages.
@@ -137,4 +137,4 @@ latency-benchmarking-suite/
 
 MIT.
 
-— Taha
+Taha
